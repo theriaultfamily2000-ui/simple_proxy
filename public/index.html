@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simple Proxy</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+```
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #0d0f14;
+  color: #f5f5f5;
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+}
+
+main {
+  width: 100%;
+  max-width: 850px;
+}
+
+h1 {
+  text-align: center;
+  font-size: clamp(32px, 6vw, 48px);
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  text-align: center;
+  color: #9ca3af;
+  margin-bottom: 32px;
+}
+
+form {
+  display: flex;
+  gap: 10px;
+}
+
+input {
+  flex: 1;
+  min-width: 0;
+  padding: 15px;
+  background: #191c24;
+  color: white;
+  border: 1px solid #343946;
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+button {
+  padding: 0 24px;
+  border: none;
+  border-radius: 10px;
+  background: #6366f1;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  min-height: 48px;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+#status {
+  color: #aeb4c0;
+  margin: 18px 0;
+  overflow-wrap: anywhere;
+}
+
+#result {
+  display: none;
+  width: 100%;
+  height: 65vh;
+  min-height: 300px;
+  border: 1px solid #343946;
+  border-radius: 10px;
+  background: white;
+}
+
+@media (max-width: 520px) {
+  form {
+    flex-direction: column;
+  }
+
+  button {
+    width: 100%;
+  }
+}
+```
+
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Simple Proxy</h1>
+    <p class="subtitle">Enter a web address to fetch its page.</p>
+
+```
+<form id="fetch-form">
+  <input
+    id="url"
+    type="text"
+    placeholder="https://example.com"
+    aria-label="Website address"
+    autocomplete="url"
+    required
+  >
+  <button id="submit" type="submit">Fetch</button>
+</form>
+
+<p id="status" role="status" aria-live="polite"></p>
+
+<iframe
+  id="result"
+  title="Fetched webpage"
+  sandbox=""
+  referrerpolicy="no-referrer"
+></iframe>
+```
+
+  </main>
+
+  <script>
+    const form = document.getElementById("fetch-form");
+    const input = document.getElementById("url");
+    const button = document.getElementById("submit");
+    const status = document.getElementById("status");
+    const result = document.getElementById("result");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      let address = input.value.trim();
+
+      if (!/^https?:\/\//i.test(address)) {
+        address = "https://" + address;
+      }
+
+      button.disabled = true;
+      status.textContent = "Fetching page...";
+      result.style.display = "none";
+      result.srcdoc = "";
+
+      try {
+        const response = await fetch(
+          "/api/fetch?url=" + encodeURIComponent(address)
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Could not fetch the page.");
+        }
+
+        if (data.contentType.includes("text/html")) {
+          result.srcdoc = data.body;
+          result.style.display = "block";
+          status.textContent =
+            "Fetched " + data.url + " (HTTP " + data.status + ").";
+        } else {
+          status.textContent =
+            "Fetched successfully, but this result is " +
+            data.contentType + ". HTML preview is unavailable.";
+        }
+      } catch (error) {
+        status.textContent = error.message;
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+
+</body>
+</html>
